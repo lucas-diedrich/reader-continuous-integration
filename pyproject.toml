@@ -1,0 +1,79 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = [ "hatchling" ]
+
+[project]
+name = "pbreadertest"
+description = "Continuous regression testing of alphapepttools.io.read_psm_table against ProteoBench submissions"
+readme = "README.md"
+authors = [
+  { name = "MannLabs" },
+]
+requires-python = ">=3.11"
+classifiers = [
+  "Private :: Do Not Upload",
+  "Programming Language :: Python :: 3 :: Only",
+]
+dynamic = [ "version" ]
+
+dependencies = [
+  # The package under test. Deliberately unpinned: the sweep reports whatever is installed.
+  "alphapepttools",
+  # Uploaded reports are served as .parquet as often as .tsv.
+  "pyarrow",
+  "requests",
+]
+optional-dependencies.dev = [
+  "pytest",
+]
+
+scripts.pbreadertest = "pbreadertest.cli:main"
+
+[tool.hatch.version]
+path = "src/pbreadertest/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = [ "src/pbreadertest" ]
+
+[tool.pytest.ini_options]
+testpaths = [ "tests" ]
+xfail_strict = true
+addopts = [
+  "--import-mode=importlib",
+]
+# The harness tests are pure functions over recorded outcomes; none of them touch the network.
+pythonpath = [ "src" ]
+
+[tool.ruff]
+line-length = 120
+src = [ "src" ]
+
+lint.select = [ "ALL" ]
+lint.ignore = [
+  "COM812",  # may cause conflicts when used with the formatter
+  "D100",    # Missing docstring in public module
+  "D104",    # Missing docstring in public package
+  "D203",    # We don't want a blank line before a class docstring
+  "D213",    # Docstrings start immediately after the opening triple quote
+  "D400",    # First line should end with a period
+  "D401",    # First line should be in imperative mood
+  "E501",    # line too long -> the formatter handles code; long comment lines are accepted
+  "EM101",   # Exception must not use a string literal
+  "EM102",   # Exception must not use an f-string literal
+  "PLR0913", # Too many arguments -> probe configuration is genuinely wide
+  "S603",    # subprocess call -> the worker is invoked with a fixed, non-user argv
+  "TRY003",  # Long messages outside the exception class
+]
+lint.per-file-ignores."src/pbreadertest/probe.py" = [
+  "PLC0415", # Deferred alphapepttools import keeps the orchestrator importable without it
+]
+lint.per-file-ignores."src/pbreadertest/mapping.py" = [ "PLC0415" ]
+lint.per-file-ignores."src/pbreadertest/worker.py" = [
+  "PLC0415", # numpy/pandas are imported inside the worker to keep startup cheap
+]
+lint.per-file-ignores."tests/*" = [
+  "ANN201",  # Test functions need no return annotations
+  "D103",    # Missing docstring in public function
+  "S101",    # assert is the point of a test
+  "SLF001",  # Tests target the classification internals deliberately
+]
